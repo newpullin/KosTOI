@@ -1,5 +1,11 @@
 from bluepy import btle
 import struct
+import time
+
+# global temp
+temp = 0
+# global temp_prev
+temp_prev = 0
 
 
 class MyDelegate(btle.DefaultDelegate):
@@ -10,13 +16,20 @@ class MyDelegate(btle.DefaultDelegate):
         ##        print(self)
         ##        print(cHandle)
         # print(struct.unpack("b",data))
-        print(str(data))
+        s_data = str(data)
+        s_data = s_data[2:len(s_data) - 1]
+        splited = s_data.split(':')
+        global temp
+        temp = float(splited[4])
+        print(temp)
 
 
 p = btle.Peripheral('C8:FD:19:13:A0:76')
 p.setDelegate(MyDelegate(0))
 
-# services=p.getServices()
+services = p.getServices()
+s = p.getServiceByUUID(list(services)[2].uuid)
+c = s.getCharacteristics()[0]
 
 # displays all services
 # for service in services:
@@ -24,12 +37,13 @@ p.setDelegate(MyDelegate(0))
 
 
 # get uuid
-
+"""
 chList = p.getCharacteristics()
 print("Handle   UUID                                Properties")
-print("-------------------------------------------------------")
+print("-------------------------------------------------------" )                
 for ch in chList:
-    print("  0x" + format(ch.getHandle(), '02X') + "   " + str(ch.uuid) + " " + ch.propertiesToString())
+   print("  0x"+ format(ch.getHandle(),'02X')  +"   "+str(ch.uuid) +" " + ch.propertiesToString())
+"""
 
 """
 Handle   UUID                                Properties
@@ -53,12 +67,23 @@ if(ch.supportsRead()):
 	print(ch.read())
 
 b'arduiono'
+
+time.sleep(2)
+led_service_uuid = btle.UUID(0x002A00)
+led_char_uuid = btle.UUID(0x002A03)
+
+LedService = p.getServiceByUUID(led_service_uuid)
+
+ch = LedService.getCharacteristics(led_char_uuid)[0]
 """
-dev_write_uuid = btle.UUID(0x2A03)
-wirte_service = p.getServiceByUUID(dev_write_uuid)
-print(wirte_service)
 
 while True:
     if p.waitForNotifications(1.0):
         continue
     print("waiting...")
+
+    if temp < 20:
+        c.write(bytes("of".encode()))
+    else:
+        c.write(bytes("on".encode()))
+
